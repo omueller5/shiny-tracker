@@ -13,6 +13,8 @@ A desktop app for tracking Pokémon shiny hunts, phases, probability milestones,
 ![Java](https://img.shields.io/badge/java-21-f89820)
 ![GitHub downloads](https://img.shields.io/github/downloads/omueller5/shiny-tracker/total)
 
+⭐ If you find this tool useful, consider **starring the repository** to help others discover it.
+
 </div>
 
 ---
@@ -29,52 +31,21 @@ All hunt data is stored locally and can be exported or imported as JSON for back
 
 ## Screenshots
 
-### Dashboard
-Shows all active hunts at a glance, including completed hunts and progress across different games.
+| Dashboard | Active Hunt |
+|-----------|-------------|
+| ![Dashboard](docs/screenshots/DashboardView.jpg) | ![BDSP Arceus Hunt](docs/screenshots/ActiveHunt.jpg) |
 
-![Dashboard](docs/screenshots/DashboardView.jpg)
+| Probability Milestones | Phase Logging |
+|------------------------|---------------|
+| ![FRLG Deoxys Hunt](docs/screenshots/ActiveHunt2.jpg) | ![PLA Growlithe Massive Mass Outbreak](docs/screenshots/ActiveHunt3.jpg) |
 
----
+| Pokédex Entry | Pokédex Field Notes |
+|---------------|---------------------|
+| ![Pokedex Entry](docs/screenshots/PokedexView.jpg) | ![Pokedex Field Notes](docs/screenshots/PokedexView2.jpg) |
 
-### Active Hunt — Standard Hunt
-A standard active hunt screen using a BDSP Arceus hunt as an example.
-
-![BDSP Arceus Hunt](docs/screenshots/ActiveHunt.jpg)
-
----
-
-### Active Hunt — Probability Milestones
-An example using a FireRed / LeafGreen Deoxys hunt, showing the probability milestone section.
-
-![FRLG Deoxys Hunt](docs/screenshots/ActiveHunt2.jpg)
-
----
-
-### Active Hunt — Phase Logging
-An example using a PLA massive mass outbreak Growlithe hunt, showing the phase tracking section.
-
-![PLA Growlithe Massive Mass Outbreak](docs/screenshots/ActiveHunt3.jpg)
-
----
-
-### National Pokédex — Entry View
-Browse the built-in Pokédex to view Pokémon information and sprites.
-
-![Pokedex Entry](docs/screenshots/PokedexView.jpg)
-
----
-
-### National Pokédex — Field Notes
-Additional information about Pokémon including extended data and notes.
-
-![Pokedex Field Notes](docs/screenshots/PokedexView2.jpg)
-
----
-
-### Catch Calculator
-Calculate the likelihood of catching a Pokémon based on catch rate, ball type, and conditions.
-
-![Catch Calculator](docs/screenshots/CatchCalculatorView.jpg)
+| Catch Calculator |
+|------------------|
+| ![Catch Calculator](docs/screenshots/CatchCalculatorView.jpg) |
 
 ---
 
@@ -108,6 +79,7 @@ Download the latest build from the **Releases** page.
 ```text
 Shiny Tracker.exe
 ```
+
 
 No installation required.
 
