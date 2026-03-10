@@ -21,7 +21,7 @@ All hunt data is stored locally and can be exported or imported as JSON for back
 ### Dashboard
 Shows all active hunts at a glance, including completed hunts and progress across different games.
 
-![Dashboard](docs/screenshots/DashBoardView.jpg)
+![Dashboard](docs/screenshots/DashboardView.jpg)
 
 ---
 
