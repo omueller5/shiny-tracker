@@ -1,8 +1,19 @@
-<p align="center">
-  <h1 align="center">Shiny Tracker</h1>
-  <p align="center">
-    A desktop app for tracking Pokémon shiny hunts, phases, probability milestones, and more.
-  </p>
+<div align="center">
+
+# Shiny Tracker
+
+A desktop app for tracking Pokémon shiny hunts, phases, probability milestones, and more.
+
+<br>
+
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-2ea44f?style=for-the-badge)](https://github.com/omueller5/shiny-tracker/releases/latest)
+
+![GitHub release](https://img.shields.io/github/v/release/omueller5/shiny-tracker?display_name=release&color=brightgreen)
+![Platform](https://img.shields.io/badge/platform-Windows-0078D6)
+![Java](https://img.shields.io/badge/java-21-f89820)
+![GitHub downloads](https://img.shields.io/github/downloads/omueller5/shiny-tracker/total)
+
+</div>
 
 ---
 
