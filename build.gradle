@@ -23,11 +23,11 @@ java {
 
 javafx {
     version = '21.0.2'
-    modules = ['javafx.controls', 'javafx.fxml']
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.media']
 }
 
 application {
-    mainClass = 'net.owen.shinytracker.Main'
+    mainClass = 'net.owen.shinytracker.Launcher'
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -38,6 +38,14 @@ processResources {
     filesMatching('app.properties') {
         expand(
                 appVersion: project.version
+        )
+    }
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes(
+                'Main-Class': 'net.owen.shinytracker.Launcher'
         )
     }
 }
@@ -54,7 +62,7 @@ tasks.register('fatJar', Jar) {
 
     manifest {
         attributes(
-                'Main-Class': 'net.owen.shinytracker.Main'
+                'Main-Class': 'net.owen.shinytracker.Launcher'
         )
     }
 
@@ -66,5 +74,51 @@ tasks.register('fatJar', Jar) {
         configurations.runtimeClasspath.collect { file ->
             file.isDirectory() ? file : zipTree(file)
         }
+    }
+}
+
+tasks.register('cleanPortableOutput', Delete) {
+    delete(
+            layout.projectDirectory.dir('dist/Shiny Tracker'),
+            layout.projectDirectory.file("dist/Shiny-Tracker-Windows-v${project.version}.zip")
+    )
+}
+
+tasks.register('packagePortable', Exec) {
+    group = 'distribution'
+    description = 'Builds a portable Windows app-image in dist/Shiny Tracker.'
+
+    dependsOn(tasks.named('fatJar'))
+    dependsOn(tasks.named('cleanPortableOutput'))
+
+    doFirst {
+        layout.projectDirectory.dir('dist').asFile.mkdirs()
+    }
+
+    def jpackageExe = new File(System.getProperty('java.home'), 'bin/jpackage.exe')
+
+    commandLine(
+            jpackageExe.absolutePath,
+            '--type', 'app-image',
+            '--name', 'Shiny Tracker',
+            '--input', layout.buildDirectory.dir('libs').get().asFile.absolutePath,
+            '--main-jar', "shiny-tracker-${project.version}-all.jar",
+            '--main-class', 'net.owen.shinytracker.Launcher',
+            '--dest', layout.projectDirectory.dir('dist').asFile.absolutePath,
+            '--icon', layout.projectDirectory.file('shiny-charm.ico').asFile.absolutePath
+    )
+}
+
+tasks.register('release', Zip) {
+    group = 'distribution'
+    description = 'Builds the portable app-image and zips it for release.'
+
+    dependsOn(tasks.named('packagePortable'))
+
+    archiveFileName.set("Shiny-Tracker-Windows-v${project.version}.zip")
+    destinationDirectory.set(layout.projectDirectory.dir('dist'))
+
+    into('Shiny Tracker') {
+        from(layout.projectDirectory.dir('dist/Shiny Tracker'))
     }
 }

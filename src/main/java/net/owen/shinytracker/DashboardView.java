@@ -42,6 +42,8 @@ public final class DashboardView {
         VBox topControls = new VBox(12);
         topControls.setAlignment(Pos.TOP_LEFT);
 
+        boolean hasHunts = hunts != null && !hunts.isEmpty();
+
         HBox primaryActions = new HBox(12);
         primaryActions.setAlignment(Pos.CENTER_LEFT);
 
@@ -60,6 +62,14 @@ public final class DashboardView {
         exportAllButton.setOnAction(e -> invokeNavigatorNoArg(navigator, "exportAllHunts"));
 
         primaryActions.getChildren().addAll(selectionModeButton, importButton, exportAllButton);
+
+        if (hasHunts) {
+            Button newHuntButton = new Button("+ New Hunt");
+            UiStyles.stylePrimaryButton(newHuntButton);
+            newHuntButton.setOnAction(e -> navigator.showCreateHunt());
+            primaryActions.getChildren().add(newHuntButton);
+        }
+
         topControls.getChildren().add(primaryActions);
 
         if (navigator.isSelectionMode()) {
@@ -88,7 +98,9 @@ public final class DashboardView {
             cardGrid.getChildren().add(buildHuntCard(hunt, navigator));
         }
 
-        cardGrid.getChildren().add(buildNewHuntCard(navigator));
+        if (!hasHunts) {
+            cardGrid.getChildren().add(buildNewHuntCard(navigator));
+        }
 
         outerContainer.getChildren().addAll(header, topControls, cardGrid);
 

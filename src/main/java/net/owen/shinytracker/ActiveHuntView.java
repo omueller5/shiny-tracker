@@ -5,11 +5,20 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -21,8 +30,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.scene.layout.FlowPane;
-import javafx.util.StringConverter;
+import javafx.stage.Window;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.scene.effect.DropShadow;
+import javafx.util.Duration;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -32,6 +47,7 @@ import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.List;
 
 public class ActiveHuntView extends VBox {
 
@@ -184,6 +200,7 @@ public class ActiveHuntView extends VBox {
     private VBox rightColumnRef;
     private HBox mainContentRef;
     private VBox pokemonInfoCardRef;
+    private StackPane spritePaneRef;
     private VBox huntDetailsCardRef;
     private VBox counterCardRef;
     private TabPane tabPaneRef;
@@ -391,7 +408,97 @@ public class ActiveHuntView extends VBox {
         }
     }
 
+    private void playShinyCompletionSoundIfNeeded(boolean wasCompleted, boolean isDone) {
+        if (!wasCompleted && isDone) {
+            ShinySoundPlayer.playForGame(hunt.getGame());
+            playPokemonCardFlare();
+        }
+    }
+
+    private void playPokemonCardFlare() {
+        DropShadow outerFlare = new DropShadow();
+        outerFlare.setColor(Color.web("#6ee16e"));
+        outerFlare.setRadius(0);
+        outerFlare.setSpread(0.25);
+        outerFlare.setOffsetX(0);
+        outerFlare.setOffsetY(0);
+
+        DropShadow innerFlare = new DropShadow();
+        innerFlare.setColor(Color.web("#4aa3ff"));
+        innerFlare.setRadius(0);
+        innerFlare.setSpread(0.25);
+        innerFlare.setOffsetX(0);
+        innerFlare.setOffsetY(0);
+
+        if (spritePaneRef != null) {
+            spritePaneRef.setEffect(outerFlare);
+        }
+
+        if (spriteView != null) {
+            spriteView.setEffect(innerFlare);
+        }
+
+        Timeline flareTimeline = new Timeline(
+                new KeyFrame(
+                        Duration.ZERO,
+                        new KeyValue(outerFlare.radiusProperty(), 0),
+                        new KeyValue(outerFlare.spreadProperty(), 0.25),
+                        new KeyValue(innerFlare.radiusProperty(), 0),
+                        new KeyValue(innerFlare.spreadProperty(), 0.25),
+                        new KeyValue(spriteView.scaleXProperty(), 1.0),
+                        new KeyValue(spriteView.scaleYProperty(), 1.0),
+                        new KeyValue(spriteView.translateYProperty(), 0)
+                ),
+                new KeyFrame(
+                        Duration.millis(160),
+                        new KeyValue(outerFlare.radiusProperty(), 34),
+                        new KeyValue(outerFlare.spreadProperty(), 0.45),
+                        new KeyValue(innerFlare.radiusProperty(), 22),
+                        new KeyValue(innerFlare.spreadProperty(), 0.45),
+                        new KeyValue(spriteView.scaleXProperty(), 1.14),
+                        new KeyValue(spriteView.scaleYProperty(), 1.14),
+                        new KeyValue(spriteView.translateYProperty(), -10)
+                ),
+                new KeyFrame(
+                        Duration.millis(320),
+                        new KeyValue(outerFlare.radiusProperty(), 18),
+                        new KeyValue(outerFlare.spreadProperty(), 0.25),
+                        new KeyValue(innerFlare.radiusProperty(), 12),
+                        new KeyValue(innerFlare.spreadProperty(), 0.22),
+                        new KeyValue(spriteView.scaleXProperty(), 1.05),
+                        new KeyValue(spriteView.scaleYProperty(), 1.05),
+                        new KeyValue(spriteView.translateYProperty(), -4)
+                ),
+                new KeyFrame(
+                        Duration.millis(700),
+                        new KeyValue(outerFlare.radiusProperty(), 0),
+                        new KeyValue(outerFlare.spreadProperty(), 0.0),
+                        new KeyValue(innerFlare.radiusProperty(), 0),
+                        new KeyValue(innerFlare.spreadProperty(), 0.0),
+                        new KeyValue(spriteView.scaleXProperty(), 1.0),
+                        new KeyValue(spriteView.scaleYProperty(), 1.0),
+                        new KeyValue(spriteView.translateYProperty(), 0)
+                )
+        );
+
+        flareTimeline.setOnFinished(e -> {
+            if (spritePaneRef != null) {
+                spritePaneRef.setEffect(null);
+            }
+            if (spriteView != null) {
+                spriteView.setEffect(null);
+                spriteView.setScaleX(1.0);
+                spriteView.setScaleY(1.0);
+                spriteView.setTranslateY(0);
+            }
+        });
+
+        flareTimeline.play();
+    }
+
     private void configurePhaseCompletionState(boolean isDone) {
+        boolean wasCompleted = hunt.isCompleted();
+
         hunt.setCompleted(isDone);
 
         if (isDone && !hasTargetPhaseLogged()) {
@@ -411,6 +518,7 @@ public class ActiveHuntView extends VBox {
             hunt.setResetCount(0);
         }
 
+        playShinyCompletionSoundIfNeeded(wasCompleted, isDone);
         onHuntUpdated();
     }
 
@@ -732,12 +840,35 @@ public class ActiveHuntView extends VBox {
     }
 
     private void setupKeybinds() {
-        keybindManager.registerAction(KeybindAction.INCREMENT_COUNTER, this::incrementCounter);
-        keybindManager.registerAction(KeybindAction.DECREMENT_COUNTER, this::decrementCounter);
+        keybindManager.registerAction(KeybindAction.INCREMENT_COUNTER, () -> {
+            if (isCurrentActiveView()) {
+                incrementCounter();
+            }
+        });
 
-        keybindManager.registerAction(KeybindAction.OPEN_HUNT_TAB, () -> tabPaneRef.getSelectionModel().select(0));
-        keybindManager.registerAction(KeybindAction.OPEN_POKEMON_TAB, () -> tabPaneRef.getSelectionModel().select(1));
-        keybindManager.registerAction(KeybindAction.OPEN_CATCH_TAB, () -> tabPaneRef.getSelectionModel().select(2));
+        keybindManager.registerAction(KeybindAction.DECREMENT_COUNTER, () -> {
+            if (isCurrentActiveView()) {
+                decrementCounter();
+            }
+        });
+
+        keybindManager.registerAction(KeybindAction.OPEN_HUNT_TAB, () -> {
+            if (isCurrentActiveView()) {
+                tabPaneRef.getSelectionModel().select(0);
+            }
+        });
+
+        keybindManager.registerAction(KeybindAction.OPEN_POKEMON_TAB, () -> {
+            if (isCurrentActiveView()) {
+                tabPaneRef.getSelectionModel().select(1);
+            }
+        });
+
+        keybindManager.registerAction(KeybindAction.OPEN_CATCH_TAB, () -> {
+            if (isCurrentActiveView()) {
+                tabPaneRef.getSelectionModel().select(2);
+            }
+        });
 
         if (getScene() != null) {
             keybindManager.install(getScene());
@@ -750,12 +881,56 @@ public class ActiveHuntView extends VBox {
         });
     }
 
+    private boolean isCurrentActiveView() {
+        Scene scene = getScene();
+        if (scene == null) {
+            return false;
+        }
+
+        if (scene.getRoot() == null) {
+            return false;
+        }
+
+        Window window = scene.getWindow();
+        if (window != null && !window.isFocused()) {
+            return false;
+        }
+
+        return scene.getRoot() == this || isDescendantOf(scene.getRoot(), this);
+    }
+
+    private boolean isDescendantOf(Parent parent, Node target) {
+        if (parent == null) {
+            return false;
+        }
+
+        for (Node child : parent.getChildrenUnmodifiable()) {
+            if (child == target) {
+                return true;
+            }
+
+            if (child instanceof Parent childParent && isDescendantOf(childParent, target)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void incrementCounter() {
+        if (!isCurrentActiveView()) {
+            return;
+        }
+
         hunt.setResetCount(hunt.getResetCount() + 1);
         onHuntUpdated();
     }
 
     private void decrementCounter() {
+        if (!isCurrentActiveView()) {
+            return;
+        }
+
         if (hunt.getResetCount() <= 0) {
             return;
         }
@@ -1039,7 +1214,6 @@ public class ActiveHuntView extends VBox {
         return scrollPane;
     }
 
-
     private double calculateCatchChance(int catchRate, int targetLevel, int yourLevel, String hpState, String status, String ball) {
         if (catchRate < 0) {
             return 0.0;
@@ -1233,14 +1407,14 @@ public class ActiveHuntView extends VBox {
     private VBox buildPokemonColumn() {
         VBox column = createCard(18, Pos.TOP_CENTER, CARD_STYLE);
 
-        StackPane spritePane = new StackPane();
-        spritePane.setMinHeight(320);
-        spritePane.setPrefHeight(340);
-        spritePane.setStyle(INNER_CARD_STYLE);
+        spritePaneRef = new StackPane();
+        spritePaneRef.setMinHeight(320);
+        spritePaneRef.setPrefHeight(340);
+        spritePaneRef.setStyle(INNER_CARD_STYLE);
 
         spriteView.setPreserveRatio(true);
         setSpriteSize(250);
-        spritePane.getChildren().add(spriteView);
+        spritePaneRef.getChildren().add(spriteView);
 
         pokemonInfoCardRef = createCard(10, Pos.TOP_LEFT, INNER_CARD_STYLE);
         pokemonInfoCardRef.getChildren().addAll(
@@ -1252,7 +1426,7 @@ public class ActiveHuntView extends VBox {
                 createInfoRow("Base Catch Rate", getBaseCatchRateLabel())
         );
 
-        column.getChildren().addAll(spritePane, pokemonInfoCardRef);
+        column.getChildren().addAll(spritePaneRef, pokemonInfoCardRef);
         return column;
     }
 
@@ -1765,141 +1939,209 @@ public class ActiveHuntView extends VBox {
     }
 
     private void editPhaseShiny(HuntPhase phase) {
-        ComboBox<PokemonEntry> pokemonBox = new ComboBox<>();
-        pokemonBox.getItems().add(null);
-        pokemonBox.getItems().addAll(PokemonData.getAllPokemon());
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Edit Phase Shiny");
+        dialog.setHeaderText("Select the Pokémon for this phase.");
 
-        pokemonBox.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(PokemonEntry pokemon) {
-                if (pokemon == null) {
-                    return "Unknown Phase Shiny";
-                }
-                return pokemon.getFormattedDisplayName();
-            }
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
-            @Override
-            public PokemonEntry fromString(String string) {
-                return null;
-            }
-        });
+        VBox content = new VBox(12);
+        content.setPadding(new Insets(16));
+        content.setStyle("-fx-background-color: #1e1e1e;");
 
-        styleComboBox(pokemonBox);
-        pokemonBox.setPrefWidth(360);
-        pokemonBox.setVisibleRowCount(12);
-
-        if (phase.getShinyDexNumber() > 0) {
-            for (PokemonEntry entry : pokemonBox.getItems()) {
-                if (entry != null && entry.getDexNumber() == phase.getShinyDexNumber()) {
-                    pokemonBox.setValue(entry);
-                    break;
-                }
-            }
-        } else {
-            pokemonBox.setValue(null);
-        }
-
-        ImageView unknownIcon = new ImageView(
-                new Image(getClass().getResource("/pokemon/sprites/pokemon/0.png").toExternalForm())
-        );
-        unknownIcon.setFitWidth(36);
-        unknownIcon.setFitHeight(36);
-        unknownIcon.setPreserveRatio(true);
-
-        Label topText = new Label("Select the shiny Pokémon for this phase");
-        topText.setStyle(
+        Label searchLabel = new Label("Phase Shiny Pokémon");
+        searchLabel.setStyle(
                 "-fx-text-fill: white;" +
                         "-fx-font-size: 14px;" +
                         "-fx-font-weight: bold;"
         );
 
-        HBox headerRow = new HBox(12, unknownIcon, topText);
-        headerRow.setAlignment(Pos.CENTER_LEFT);
+        ObservableList<PokemonEntry> allPokemon = FXCollections.observableArrayList();
+        allPokemon.add(null);
+        allPokemon.addAll(PokemonData.getAllPokemon());
 
-        Label label = new Label("Phase Shiny Pokémon");
-        label.setStyle(
-                "-fx-text-fill: white;" +
-                        "-fx-font-size: 15px;" +
-                        "-fx-font-weight: bold;"
+        TextField pokemonSearchField = new TextField();
+        pokemonSearchField.setPromptText("Search by name or dex number...");
+        pokemonSearchField.setPrefWidth(360);
+        pokemonSearchField.setStyle(
+                "-fx-background-color: #2b2b2b;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-prompt-text-fill: #888888;" +
+                        "-fx-background-radius: 8px;" +
+                        "-fx-border-radius: 8px;" +
+                        "-fx-border-color: #444444;" +
+                        "-fx-padding: 8 10 8 10;"
         );
 
-        VBox layout = new VBox(16, headerRow, label, pokemonBox);
-        layout.setAlignment(Pos.CENTER_LEFT);
-        layout.setPadding(new Insets(8, 0, 0, 0));
-        layout.setStyle("-fx-background-color: #181a20;");
-
-        Alert dialog = new Alert(Alert.AlertType.CONFIRMATION);
-        dialog.setTitle("Edit Phase Shiny");
-        dialog.setHeaderText(null);
-        dialog.setGraphic(null);
-
-        DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.setContent(layout);
-
-        dialogPane.setStyle(
-                "-fx-background-color: #181a20;" +
-                        "-fx-border-color: #2c313c;" +
-                        "-fx-border-width: 1;" +
-                        "-fx-padding: 18;"
+        ListView<PokemonEntry> pokemonListView = new ListView<>();
+        pokemonListView.setItems(FXCollections.observableArrayList(allPokemon));
+        pokemonListView.setPrefWidth(360);
+        pokemonListView.setPrefHeight(260);
+        pokemonListView.setStyle(
+                "-fx-control-inner-background: #2b2b2b;" +
+                        "-fx-background-color: #2b2b2b;" +
+                        "-fx-background-radius: 8px;" +
+                        "-fx-border-radius: 8px;" +
+                        "-fx-border-color: #444444;"
         );
 
-        Node headerPanel = dialogPane.lookup(".header-panel");
-        if (headerPanel != null) {
-            headerPanel.setManaged(false);
-            headerPanel.setVisible(false);
+        pokemonListView.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(PokemonEntry item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                    setStyle("");
+                    return;
+                }
+
+                if (item == null) {
+                    setText("Unknown Phase Shiny");
+                } else {
+                    setText(item.getFormattedDisplayName());
+                }
+
+                if (isSelected()) {
+                    setStyle(
+                            "-fx-background-color: #2a3f5f;" +
+                                    "-fx-text-fill: white;" +
+                                    "-fx-border-color: #4aa3ff;" +
+                                    "-fx-border-width: 2px;" +
+                                    "-fx-border-radius: 6px;" +
+                                    "-fx-background-radius: 6px;" +
+                                    "-fx-font-weight: bold;"
+                    );
+                } else {
+                    setStyle(
+                            "-fx-background-color: transparent;" +
+                                    "-fx-text-fill: white;" +
+                                    "-fx-border-color: transparent;" +
+                                    "-fx-border-width: 2px;" +
+                                    "-fx-border-radius: 6px;" +
+                                    "-fx-background-radius: 6px;"
+                    );
+                }
+            }
+
+            @Override
+            public void updateSelected(boolean selected) {
+                super.updateSelected(selected);
+
+                if (isEmpty()) {
+                    return;
+                }
+
+                if (selected) {
+                    setStyle(
+                            "-fx-background-color: #2a3f5f;" +
+                                    "-fx-text-fill: white;" +
+                                    "-fx-border-color: #4aa3ff;" +
+                                    "-fx-border-width: 2px;" +
+                                    "-fx-border-radius: 6px;" +
+                                    "-fx-background-radius: 6px;" +
+                                    "-fx-font-weight: bold;"
+                    );
+                } else {
+                    setStyle(
+                            "-fx-background-color: transparent;" +
+                                    "-fx-text-fill: white;" +
+                                    "-fx-border-color: transparent;" +
+                                    "-fx-border-width: 2px;" +
+                                    "-fx-border-radius: 6px;" +
+                                    "-fx-background-radius: 6px;"
+                    );
+                }
+            }
+        });
+
+        Runnable applyFilter = () -> {
+            String query = pokemonSearchField.getText() == null
+                    ? ""
+                    : pokemonSearchField.getText().trim().toLowerCase();
+
+            ObservableList<PokemonEntry> filtered = FXCollections.observableArrayList();
+            filtered.add(null);
+
+            for (PokemonEntry entry : PokemonData.getAllPokemon()) {
+                if (entry == null) {
+                    continue;
+                }
+
+                String formatted = entry.getFormattedDisplayName().toLowerCase();
+                String display = entry.getDisplayName().toLowerCase();
+                String dex = String.valueOf(entry.getDexNumber());
+
+                if (query.isBlank()
+                        || formatted.contains(query)
+                        || display.contains(query)
+                        || dex.contains(query)
+                        || query.equals("#" + dex)) {
+                    filtered.add(entry);
+                }
+            }
+
+            PokemonEntry currentSelection = pokemonListView.getSelectionModel().getSelectedItem();
+            pokemonListView.setItems(filtered);
+
+            if (currentSelection != null && filtered.contains(currentSelection)) {
+                pokemonListView.getSelectionModel().select(currentSelection);
+                pokemonListView.scrollTo(currentSelection);
+            } else if (currentSelection == null) {
+                pokemonListView.getSelectionModel().select(null);
+                pokemonListView.scrollTo(0);
+            } else if (!filtered.isEmpty()) {
+                pokemonListView.getSelectionModel().selectFirst();
+                pokemonListView.scrollTo(0);
+            }
+        };
+
+        pokemonSearchField.textProperty().addListener((obs, oldValue, newValue) -> applyFilter.run());
+
+        if (phase.getShinyDexNumber() > 0) {
+            for (PokemonEntry entry : allPokemon) {
+                if (entry != null && entry.getDexNumber() == phase.getShinyDexNumber()) {
+                    pokemonListView.getSelectionModel().select(entry);
+                    pokemonListView.scrollTo(entry);
+                    pokemonSearchField.setText(entry.getFormattedDisplayName());
+                    break;
+                }
+            }
+        } else {
+            pokemonListView.getSelectionModel().select(null);
         }
 
-        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
-        Button cancelButton = (Button) dialogPane.lookupButton(ButtonType.CANCEL);
+        pokemonListView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                dialog.setResult(saveButtonType);
+                dialog.close();
+            }
+        });
 
-        String buttonStyle =
-                "-fx-background-color: #215f7a;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-size: 13px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8px;" +
-                        "-fx-padding: 8 20 8 20;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-min-width: 96px;";
+        content.getChildren().addAll(searchLabel, pokemonSearchField, pokemonListView);
+        dialog.getDialogPane().setContent(content);
 
-        String cancelStyle =
-                "-fx-background-color: #2b2f38;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-size: 13px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-radius: 8px;" +
-                        "-fx-padding: 8 20 8 20;" +
-                        "-fx-cursor: hand;" +
-                        "-fx-min-width: 96px;";
-
-        okButton.setStyle(buttonStyle);
-        cancelButton.setStyle(cancelStyle);
-
-        dialogPane.applyCss();
-        Node buttonBar = dialogPane.lookup(".button-bar");
-        if (buttonBar != null) {
-            buttonBar.setStyle(
-                    "-fx-padding: 18 0 0 0;" +
-                            "-fx-alignment: center;"
-            );
-        }
+        Platform.runLater(() -> {
+            pokemonSearchField.requestFocus();
+            pokemonSearchField.selectAll();
+        });
 
         Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
-            return;
+        if (result.isPresent() && result.get() == saveButtonType) {
+            PokemonEntry selectedPokemon = pokemonListView.getSelectionModel().getSelectedItem();
+
+            if (selectedPokemon == null) {
+                phase.setShinyPokemonName("Unknown");
+                phase.setShinyDexNumber(0);
+            } else {
+                phase.setShinyPokemonName(selectedPokemon.getDisplayName());
+                phase.setShinyDexNumber(selectedPokemon.getDexNumber());
+            }
+
+            onHuntUpdated();
         }
-
-        PokemonEntry selected = pokemonBox.getValue();
-
-        if (selected == null) {
-            phase.setShinyPokemonName("Unknown Phase Shiny");
-            phase.setShinyDexNumber(-1);
-        } else {
-            phase.setShinyPokemonName(selected.getDisplayName());
-            phase.setShinyDexNumber(selected.getDexNumber());
-        }
-
-        onHuntUpdated();
     }
 
     private boolean hasTargetPhaseLogged() {
