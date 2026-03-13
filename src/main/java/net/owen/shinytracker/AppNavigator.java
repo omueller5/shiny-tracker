@@ -4,6 +4,10 @@ public interface AppNavigator {
 
     void showDashboard();
 
+    void showStats();
+
+    void showCatchCalc();
+
     void showCreateHunt();
 
     void showActiveHunt(Hunt hunt);

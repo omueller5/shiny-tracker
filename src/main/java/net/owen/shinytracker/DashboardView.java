@@ -4,7 +4,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -24,20 +23,10 @@ public final class DashboardView {
     private DashboardView() {
     }
 
-    public static ScrollPane build(List<Hunt> hunts, AppNavigator navigator) {
+    public static VBox build(List<Hunt> hunts, AppNavigator navigator) {
         VBox outerContainer = new VBox(18);
-        outerContainer.setPadding(new Insets(28));
+        outerContainer.setPadding(new Insets(0, 28, 28, 28));
         outerContainer.setAlignment(Pos.TOP_LEFT);
-
-        Label header = new Label("Dashboard");
-        header.setStyle(
-                "-fx-text-fill: white;" +
-                        "-fx-font-size: 28px;" +
-                        "-fx-font-weight: bold;" +
-                        "-fx-background-color: #2a2a2a;" +
-                        "-fx-background-radius: 10px;" +
-                        "-fx-padding: 10 16 10 16;"
-        );
 
         VBox topControls = new VBox(12);
         topControls.setAlignment(Pos.TOP_LEFT);
@@ -94,7 +83,13 @@ public final class DashboardView {
         cardGrid.setPrefWrapLength(1200);
         cardGrid.setAlignment(Pos.TOP_LEFT);
 
-        for (Hunt hunt : hunts) {
+        java.util.List<Hunt> sortedHunts = new java.util.ArrayList<>();
+        if (hunts != null) {
+            sortedHunts.addAll(hunts);
+        }
+        sortedHunts.sort(java.util.Comparator.comparingLong(Hunt::getLastUpdated).reversed());
+
+        for (Hunt hunt : sortedHunts) {
             cardGrid.getChildren().add(buildHuntCard(hunt, navigator));
         }
 
@@ -102,25 +97,14 @@ public final class DashboardView {
             cardGrid.getChildren().add(buildNewHuntCard(navigator));
         }
 
-        outerContainer.getChildren().addAll(header, topControls, cardGrid);
+        outerContainer.getChildren().addAll(topControls, cardGrid);
+        outerContainer.setMaxWidth(Double.MAX_VALUE);
 
-        ScrollPane scrollPane = new ScrollPane(outerContainer);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setPannable(true);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollPane.setStyle(
-                "-fx-background: transparent;" +
-                        "-fx-background-color: transparent;"
-        );
-
-        outerContainer.prefWidthProperty().bind(scrollPane.widthProperty().subtract(20));
-
-        scrollPane.viewportBoundsProperty().addListener((obs, oldBounds, newBounds) -> {
-            updateResponsiveCardLayout(cardGrid, newBounds.getWidth());
+        outerContainer.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            updateResponsiveCardLayout(cardGrid, newWidth.doubleValue());
         });
 
-        return scrollPane;
+        return outerContainer;
     }
 
     private static void updateResponsiveCardLayout(FlowPane cardGrid, double width) {

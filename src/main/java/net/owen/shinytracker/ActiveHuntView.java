@@ -519,6 +519,7 @@ public class ActiveHuntView extends VBox {
         }
 
         playShinyCompletionSoundIfNeeded(wasCompleted, isDone);
+        hunt.touch();
         onHuntUpdated();
     }
 
@@ -923,6 +924,7 @@ public class ActiveHuntView extends VBox {
         }
 
         hunt.setResetCount(hunt.getResetCount() + 1);
+        hunt.touch();
         onHuntUpdated();
     }
 
@@ -936,6 +938,7 @@ public class ActiveHuntView extends VBox {
         }
 
         hunt.setResetCount(hunt.getResetCount() - 1);
+        hunt.touch();
         onHuntUpdated();
     }
 
@@ -1514,6 +1517,7 @@ public class ActiveHuntView extends VBox {
         button.setStyle(style);
         button.setOnAction(e -> {
             hunt.setResetCount(hunt.getResetCount() + delta);
+            hunt.touch();
             onHuntUpdated();
         });
         return button;
@@ -1935,6 +1939,7 @@ public class ActiveHuntView extends VBox {
         hunt.setTotalEncounters(hunt.getTotalEncounters() + currentPhaseEncounters);
         hunt.setResetCount(0);
 
+        hunt.touch();
         onHuntUpdated();
     }
 

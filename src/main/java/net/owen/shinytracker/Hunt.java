@@ -18,11 +18,15 @@ public class Hunt {
 
     private int totalEncounters;
     private java.util.List<HuntPhase> phases = new java.util.ArrayList<>();
+
+    private long lastUpdated;
+
     public int getCurrentPhaseNumber() {
         return getPhases().size() + 1;
     }
 
     public Hunt() {
+        this.lastUpdated = System.currentTimeMillis();
     }
 
     public Hunt(String pokemonName,
@@ -49,6 +53,7 @@ public class Hunt {
         this.hyperspaceHunt = hyperspaceHunt;
         this.doughnutLevel = doughnutLevel;
         this.resetPreset = resetPreset;
+        this.lastUpdated = System.currentTimeMillis();
     }
 
     public String getPokemonName() {
@@ -166,6 +171,30 @@ public class Hunt {
         this.phases = (phases == null) ? new java.util.ArrayList<>() : phases;
     }
 
+    public long getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
+    public void touch() {
+        this.lastUpdated = System.currentTimeMillis();
+    }
+
+    public int getPhaseCount() {
+        return getPhases().size();
+    }
+
+    public boolean hasCompletedPhase() {
+        for (HuntPhase phase : getPhases()) {
+            if (phase.isTargetPhase()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public String getFileSafeName() {
         String base = (pokemonName == null ? "hunt" : pokemonName)

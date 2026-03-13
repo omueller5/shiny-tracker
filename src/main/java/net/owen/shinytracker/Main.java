@@ -123,7 +123,19 @@ public class Main extends Application implements AppNavigator {
     @Override
     public void showDashboard() {
         applyCurrentTheme();
-        setContent(DashboardView.build(hunts, this));
+        setContent(DashboardShellView.build(hunts, this, "hunts"));
+    }
+
+    @Override
+    public void showStats() {
+        applyCurrentTheme();
+        setContent(DashboardShellView.build(hunts, this, "stats"));
+    }
+
+    @Override
+    public void showCatchCalc() {
+        applyCurrentTheme();
+        setContent(DashboardShellView.build(hunts, this, "catch"));
     }
 
     @Override
