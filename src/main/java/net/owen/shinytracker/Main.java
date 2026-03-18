@@ -139,6 +139,12 @@ public class Main extends Application implements AppNavigator {
     }
 
     @Override
+    public void showTimeline() {
+        applyCurrentTheme();
+        setContent(DashboardShellView.build(hunts, this, "timeline"));
+    }
+
+    @Override
     public void showCreateHunt() {
         applyCurrentTheme();
         setContent(CreateHuntView.build(hunts, huntStorage, this));

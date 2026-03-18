@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import javafx.animation.Animation;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -186,8 +187,16 @@ public class ActiveHuntView extends VBox {
     private final Label oddsValueLabel = new Label();
     private final Label shinyCharmValueLabel = new Label();
     private final Label estimatedTimeValueLabel = new Label();
+    private final Label sessionTimeValueLabel = new Label();
+    private final Label estimatedEphValueLabel = new Label();
     private final Label resetCountLabel = new Label();
     private final CheckBox completedCheckBox = new CheckBox("Hunt Done");
+
+    // Active-hunt session tracking state.
+    private long sessionStartEpochMillis = System.currentTimeMillis();
+    private int sessionStartEncounterCount = 0;
+    private Timeline sessionTimeline;
+    private Double smoothedEstimatedEph = null;
 
     private final ImageView spriteView = new ImageView();
     private final VBox milestoneList = new VBox(10);
@@ -248,10 +257,14 @@ public class ActiveHuntView extends VBox {
                 updateResponsiveLayout(newScene.getWidth());
                 newScene.widthProperty().addListener((widthObs, oldWidth, newWidth) ->
                         updateResponsiveLayout(newWidth.doubleValue()));
+                startSessionTracking();
+            } else {
+                stopSessionTracking();
             }
         });
 
         refresh();
+        startSessionTracking();
     }
 
     public static Parent build(Hunt hunt, HuntStorage huntStorage, AppNavigator navigator) {
@@ -1449,7 +1462,8 @@ public class ActiveHuntView extends VBox {
                 createStatRow("Hunt Method", safeString(hunt.getMethod())),
                 createStatRow("Odds", oddsValueLabel),
                 createStatRow("Shiny Charm", shinyCharmValueLabel),
-                createStatRow("Estimated Time", estimatedTimeValueLabel)
+                createStatRow("Estimated Time", estimatedTimeValueLabel),
+                createStatRow("Session Time", sessionTimeValueLabel)
         );
 
         counterCardRef = createCard(22, Pos.CENTER, CARD_STYLE);
@@ -1540,11 +1554,30 @@ public class ActiveHuntView extends VBox {
         ScrollPane milestoneScrollPane = createPhaseScrollPane(milestoneList);
         applyDarkScrollPaneTheme(milestoneScrollPane);
 
+        Label estimatedEphTitle = new Label("Estimated Encounters / Hour");
+        estimatedEphTitle.setStyle(MILESTONE_TITLE_STYLE);
+
+        estimatedEphValueLabel.setStyle(MILESTONE_VALUE_STYLE);
+
+        VBox estimateBox = new VBox(6, estimatedEphTitle, estimatedEphValueLabel);
+        estimateBox.setAlignment(Pos.CENTER_LEFT);
+        estimateBox.setPadding(new Insets(10, 6, 10, 6));
+        estimateBox.setStyle(
+                "-fx-background-color: #101014;" +
+                        "-fx-background-radius: 12px;" +
+                        "-fx-border-color: #26262d;" +
+                        "-fx-border-radius: 12px;"
+        );
+
+        VBox milestoneContent = new VBox(12, estimateBox, milestoneScrollPane);
+        milestoneContent.setFillWidth(true);
+        milestoneContent.setStyle("-fx-background-color: #18181c;");
+
         TitledPane titledPane = new TitledPane();
         titledPane.setText("Show Milestone Time Estimates");
         titledPane.setExpanded(false);
         titledPane.setCollapsible(true);
-        titledPane.setContent(milestoneScrollPane);
+        titledPane.setContent(milestoneContent);
         titledPane.setStyle(
                 "-fx-text-fill: white;" +
                         "-fx-background-color: #18181c;" +
@@ -1654,10 +1687,84 @@ public class ActiveHuntView extends VBox {
         updateValueLabel(oddsValueLabel, "1 / " + ShinyOddsCalculator.getDisplayedOddsDenominator(hunt));
         updateValueLabel(shinyCharmValueLabel, hunt.isShinyCharmEnabled() ? "Yes" : "No");
         updateValueLabel(estimatedTimeValueLabel, TimeEstimateCalculator.getAverageTimeForAnyShiny(hunt));
+        updateSessionStats();
 
         rebuildMilestones();
         rebuildPhaseSummary();
         rebuildPhaseList();
+    }
+
+
+    // Starts a live timer for the current active-hunt session and estimated encounters-per-hour.
+    private void startSessionTracking() {
+        sessionStartEpochMillis = System.currentTimeMillis();
+        sessionStartEncounterCount = resolveCurrentEncounterCount();
+        smoothedEstimatedEph = null;
+
+        if (sessionTimeline != null) {
+            sessionTimeline.stop();
+        }
+
+        sessionTimeline = new Timeline(
+                new KeyFrame(Duration.ZERO, e -> updateSessionStats()),
+                new KeyFrame(Duration.seconds(1))
+        );
+        sessionTimeline.setCycleCount(Animation.INDEFINITE);
+        sessionTimeline.play();
+    }
+
+    private void stopSessionTracking() {
+        if (sessionTimeline != null) {
+            sessionTimeline.stop();
+        }
+    }
+
+    private void updateSessionStats() {
+        long elapsedMillis = Math.max(0L, System.currentTimeMillis() - sessionStartEpochMillis);
+        long elapsedSeconds = elapsedMillis / 1000L;
+
+        updateValueLabel(sessionTimeValueLabel, formatSessionDuration(elapsedSeconds));
+
+        int sessionEncounters = Math.max(0, resolveCurrentEncounterCount() - sessionStartEncounterCount);
+        if (elapsedSeconds < 60L || sessionEncounters <= 0) {
+            estimatedEphValueLabel.setText("--");
+            estimatedEphValueLabel.setStyle(MILESTONE_VALUE_STYLE + "-fx-text-fill: #9ca3af;");
+            return;
+        }
+
+        double hours = elapsedSeconds / 3600.0;
+        double rawEstimatedEph = sessionEncounters / hours;
+
+        if (smoothedEstimatedEph == null) {
+            smoothedEstimatedEph = rawEstimatedEph;
+        } else {
+            smoothedEstimatedEph = (smoothedEstimatedEph * 0.82) + (rawEstimatedEph * 0.18);
+        }
+
+        long roundedEstimatedEph = Math.round(smoothedEstimatedEph);
+        estimatedEphValueLabel.setText(String.format("%,d", roundedEstimatedEph));
+        estimatedEphValueLabel.setStyle(MILESTONE_VALUE_STYLE + estimatedEphColorStyle(roundedEstimatedEph));
+    }
+
+    private int resolveCurrentEncounterCount() {
+        return Math.max(0, hunt.getTotalEncounters() + hunt.getResetCount());
+    }
+
+    private String formatSessionDuration(long totalSeconds) {
+        long hours = totalSeconds / 3600L;
+        long minutes = (totalSeconds % 3600L) / 60L;
+        long seconds = totalSeconds % 60L;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    private String estimatedEphColorStyle(long eph) {
+        if (eph >= 300) {
+            return "-fx-text-fill: #4ade80;";
+        }
+        if (eph >= 150) {
+            return "-fx-text-fill: #fbbf24;";
+        }
+        return "-fx-text-fill: #fb923c;";
     }
 
     private void updateValueLabel(Label label, String value) {

@@ -2,9 +2,9 @@
   "showPlusMinusTenButtons": false,
   "themeId": "dark",
   "spriteMode": "default",
-  "spritePackMode": "default",
+  "spritePackMode": "sprites3d",
   "keybinds": {
-    "INCREMENT_COUNTER": "+",
+    "INCREMENT_COUNTER": "Add",
     "OPEN_CATCH_TAB": "Ctrl+3",
     "DECREMENT_COUNTER": "Subtract",
     "OPEN_HUNT_TAB": "Ctrl+1",

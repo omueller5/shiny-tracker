@@ -37,12 +37,16 @@ public final class DashboardShellView {
         Button catchCalcTab = buildTabButton("Catch Calc", "catch".equals(selectedTab));
         catchCalcTab.setOnAction(e -> invokeNavigatorNoArg(navigator, "showCatchCalc"));
 
-        tabBar.getChildren().addAll(dashboardTab, statsTab, catchCalcTab);
+        Button timelineTab = buildTabButton("Timeline", "timeline".equals(selectedTab));
+        timelineTab.setOnAction(e -> invokeNavigatorNoArg(navigator, "showTimeline"));
+
+        tabBar.getChildren().addAll(dashboardTab, statsTab, catchCalcTab, timelineTab);
 
         Node content;
         switch (selectedTab) {
             case "stats" -> content = StatsView.build(hunts);
             case "catch" -> content = CatchCalcView.build();
+            case "timeline" -> content = TimelineView.build(hunts);
             case "hunts" -> content = DashboardView.build(hunts, navigator);
             default -> content = DashboardView.build(hunts, navigator);
         }

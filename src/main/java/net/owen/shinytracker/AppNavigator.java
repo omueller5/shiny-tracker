@@ -8,6 +8,8 @@ public interface AppNavigator {
 
     void showCatchCalc();
 
+    void showTimeline();
+
     void showCreateHunt();
 
     void showActiveHunt(Hunt hunt);
